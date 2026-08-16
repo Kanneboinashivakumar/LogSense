@@ -1,0 +1,9 @@
+2026-08-16 15:02:11 ERROR Database connection timeout
+this is not a valid log line at all
+2026-08-16 15:04:33 ERROR Database connection timeout
+2026-08-16T15:06:52Z BADLEVEL something went sideways here
+2026-08-16 15:08:52 ERROR Database connection timeout
+
+2026-08-16 15:11:19 WARNING High memory usage detected
+###CORRUPTED_LINE###
+2026-08-16 15:14:02 ERROR Database connection timeout

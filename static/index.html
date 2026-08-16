@@ -1,0 +1,2388 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="LogSense — High-precision log incident detection, automated baseline modeling, and explainable error trends.">
+  <title>LogSense — Error Trend Detector</title>
+
+  <!-- Favicon and App Icons -->
+  <link rel="icon" type="image/png" sizes="64x64" href="/static/favicon.png">
+  <link rel="shortcut icon" href="/static/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/assets/logo.png">
+
+  <!-- Google Fonts: Source Serif 4, Geist, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       DESIGN SYSTEM TOKENS — Steep Editorial & Modern Observability
+       ========================================================================== */
+    :root, [data-theme="light"] {
+      --color-ink-black: #17191c;
+      --color-paper-white: #ffffff;
+      --color-mist-gray: #f2f2f3;
+      --color-fog-white: #fafafb;
+      --color-slate-gray: #777b86;
+      --color-ash-gray: #979799;
+      --color-smoke-gray: #a3a6af;
+
+      --bg-canvas: #fafafb;
+      --bg-card: #ffffff;
+      --bg-surface-alt: #f2f2f3;
+      --bg-surface-hover: #eaebee;
+      --bg-input: #ffffff;
+
+      --text-main: #17191c;
+      --text-secondary: #4b5563;
+      --text-muted: #6b7280;
+      --text-dim: #9ca3af;
+
+      --border-subtle: #e5e7eb;
+      --border-medium: #d1d5db;
+      --border-strong: #9ca3af;
+
+      --color-destructive: #dc2626;
+      --color-destructive-soft: rgba(220, 38, 38, 0.08);
+      --color-destructive-border: rgba(220, 38, 38, 0.25);
+
+      --color-warning: #ea580c;
+      --color-warning-soft: rgba(234, 88, 12, 0.08);
+      --color-warning-border: rgba(234, 88, 12, 0.25);
+
+      --color-success: #16a34a;
+      --color-success-soft: rgba(22, 163, 74, 0.08);
+      --color-success-border: rgba(22, 163, 74, 0.25);
+
+      --chart-bar-baseline: #e5e7eb;
+      --chart-bar-hover: #d1d5db;
+      --chart-bar-spike: #dc2626;
+      --chart-grid: #e5e7eb;
+      --chart-text: #6b7280;
+
+      --shadow-subtle: 0px 1px 3px 0px rgba(0, 0, 0, 0.05), 0px 4px 20px 0px rgba(0, 0, 0, 0.04);
+      --shadow-floating: 0px 0px 0px 1px rgba(0, 0, 0, 0.04), 0px 20px 25px -5px rgba(0, 0, 0, 0.08), 0px 8px 10px -6px rgba(0, 0, 0, 0.04);
+      --logo-filter: none;
+      --focus-ring: 0 0 0 2px var(--color-paper-white), 0 0 0 4px var(--color-ink-black);
+    }
+
+    [data-theme="dark"] {
+      --color-ink-black: #f4f4f5;
+      --color-paper-white: #090a0f;
+      --color-mist-gray: #161822;
+      --color-fog-white: #090a0f;
+      --color-slate-gray: #a1a1aa;
+      --color-ash-gray: #71717a;
+      --color-smoke-gray: #52525b;
+
+      --bg-canvas: #090a0f;
+      --bg-card: #11131a;
+      --bg-surface-alt: #161822;
+      --bg-surface-hover: #1f2333;
+      --bg-input: #0c0d14;
+
+      --text-main: #f4f4f5;
+      --text-secondary: #d1d5db;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      --border-subtle: #222533;
+      --border-medium: #2e3244;
+      --border-strong: #4b5563;
+
+      --color-destructive: #ef4444;
+      --color-destructive-soft: rgba(239, 68, 68, 0.15);
+      --color-destructive-border: rgba(239, 68, 68, 0.35);
+
+      --color-warning: #f97316;
+      --color-warning-soft: rgba(249, 115, 22, 0.15);
+      --color-warning-border: rgba(249, 115, 22, 0.35);
+
+      --color-success: #22c55e;
+      --color-success-soft: rgba(34, 197, 94, 0.15);
+      --color-success-border: rgba(34, 197, 94, 0.35);
+
+      --chart-bar-baseline: #222533;
+      --chart-bar-hover: #2e3244;
+      --chart-bar-spike: #ef4444;
+      --chart-grid: #1c1f2b;
+      --chart-text: #9ca3af;
+
+      --shadow-subtle: 0px 0px 0px 1px rgba(255, 255, 255, 0.06), 0px 4px 20px rgba(0, 0, 0, 0.4);
+      --shadow-floating: 0px 0px 0px 1px rgba(255, 255, 255, 0.08), 0px 20px 30px -5px rgba(0, 0, 0, 0.6);
+      --logo-filter: invert(1) brightness(1.1);
+      --focus-ring: 0 0 0 2px var(--bg-canvas), 0 0 0 4px var(--color-ink-black);
+    }
+
+    /* ==========================================================================
+       GLOBAL BASE & ACCESSIBILITY RESETS
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      font-size: 14px;
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+      max-width: 100vw;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-canvas);
+    }
+
+    body {
+      font-family: 'Inter', 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      max-width: 100vw;
+      width: 100%;
+      transition: background-color 200ms ease, color 200ms ease;
+    }
+
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    /* ==========================================================================
+       INTRO ANIMATION (Staggered Letter Emergence)
+       ========================================================================== */
+    #introOverlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-canvas);
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      transition: opacity 550ms cubic-bezier(0.22, 1, 0.36, 1), transform 550ms cubic-bezier(0.22, 1, 0.36, 1), visibility 550ms;
+    }
+
+    #introOverlay.hidden {
+      opacity: 0;
+      transform: scale(1.03);
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .intro-logo-container {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .intro-badge-icon {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      filter: var(--logo-filter);
+      animation: pulse-intro 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulse-intro {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.08) rotate(3deg); }
+    }
+
+    .intro-typewriter-text {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: clamp(36px, 5.5vw, 56px);
+      font-weight: 400;
+      letter-spacing: -0.04em;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .intro-char {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(18px) rotate(1deg);
+      animation: char-rise 450ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes char-rise {
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+
+    .intro-tagline {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 450ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .intro-tagline.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ==========================================================================
+       APP CONTAINER (No-scroll landing layout)
+       ========================================================================== */
+    .app-wrapper {
+      max-width: 1160px;
+      width: 100%;
+      min-height: 100vh;
+      box-sizing: border-box;
+      margin: 0 auto;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 20px;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================================================
+       NAVBAR
+       ========================================================================== */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      animation: nav-slide-down 450ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes nav-slide-down {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+      background: none;
+      border: none;
+      padding: 4px;
+      border-radius: 8px;
+      color: inherit;
+      text-align: left;
+      transition: transform 150ms ease;
+    }
+
+    .brand-group:hover {
+      transform: translateY(-1px);
+    }
+
+    .brand-logo-img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      flex-shrink: 0;
+      filter: var(--logo-filter);
+      transition: transform 180ms ease, filter 200ms ease;
+    }
+
+    .brand-group:hover .brand-logo-img {
+      transform: rotate(6deg) scale(1.05);
+    }
+
+    .brand-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 19px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-badge-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 5px 12px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-success);
+      box-shadow: 0 0 0 2px var(--color-success-soft);
+    }
+
+    .theme-toggle-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      border-radius: 9999px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow-subtle);
+      transition: all 150ms ease;
+    }
+
+    .theme-toggle-btn:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-medium);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       CINEMATIC TWO-STAGE VIEW TRANSITIONS
+       ========================================================================== */
+    .page-view {
+      display: none;
+      opacity: 0;
+      transform: translateY(28px) scale(0.985);
+      filter: blur(4px);
+      transition: opacity 380ms cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+                  filter 380ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: opacity, transform, filter;
+    }
+
+    .page-view.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0px);
+    }
+
+    .page-view.exiting-forward {
+      display: flex;
+      opacity: 0;
+      transform: translateY(-24px) scale(0.98);
+      filter: blur(4px);
+    }
+
+    .page-view.exiting-backward {
+      display: flex;
+      opacity: 0;
+      transform: translateY(24px) scale(0.98);
+      filter: blur(4px);
+    }
+
+    .page-view.entering-backward {
+      display: flex;
+      opacity: 0;
+      transform: translateY(-24px) scale(0.985);
+      filter: blur(4px);
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow-subtle);
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    /* ==========================================================================
+       PAGE 1: HERO LANDING VIEW
+       ========================================================================== */
+    #pageLanding {
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px 12px 10px 12px;
+      margin: auto 0;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      box-shadow: var(--shadow-subtle);
+      margin-bottom: 16px;
+      animation: hero-fade-up 400ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .hero-eyebrow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-destructive);
+      animation: pulse-dot 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+
+    .hero-headline {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: clamp(32px, 4.4vw, 52px);
+      font-weight: 400;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+      color: var(--text-main);
+      max-width: 860px;
+      margin-bottom: 14px;
+    }
+
+    .letter-span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(20px) rotate(1deg);
+      animation: letter-reveal 550ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes letter-reveal {
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+    }
+
+    .hero-subhead {
+      font-size: 15px;
+      color: var(--text-secondary);
+      max-width: 660px;
+      line-height: 1.55;
+      margin-bottom: 22px;
+      font-weight: 400;
+      animation: hero-fade-up 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes hero-fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      animation: hero-fade-up 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .btn-pill-primary {
+      background: var(--color-ink-black);
+      color: var(--color-paper-white);
+      border: 1px solid var(--color-ink-black);
+      border-radius: 9999px;
+      padding: 11px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 150ms ease;
+    }
+
+    .btn-pill-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-pill-ghost {
+      background: transparent;
+      color: var(--color-ink-black);
+      border: 1px solid var(--border-medium);
+      border-radius: 9999px;
+      padding: 11px 22px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 150ms ease;
+    }
+
+    .btn-pill-ghost:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--color-ink-black);
+      transform: translateY(-2px);
+    }
+
+    /* Floating Pipeline Artifact */
+    .hero-visual-card {
+      width: 100%;
+      max-width: 860px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-floating);
+      position: relative;
+      overflow: hidden;
+      animation: hero-fade-up 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .hero-radar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .radar-live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--color-destructive);
+      font-weight: 600;
+    }
+
+    .radar-scanner-track {
+      height: 3px;
+      width: 100%;
+      background: var(--bg-surface-alt);
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .radar-scanner-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 25%;
+      background: linear-gradient(to right, transparent, var(--color-destructive), transparent);
+      animation: radar-sweep 2.4s infinite linear;
+    }
+
+    @keyframes radar-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(450%); }
+    }
+
+    .hero-radar-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      text-align: left;
+    }
+
+    @media (max-width: 640px) {
+      .hero-radar-metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .radar-stat-box {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 14px;
+      transition: transform 150ms ease, background-color 150ms ease;
+    }
+
+    .radar-stat-box:hover {
+      transform: translateY(-2px);
+      background: var(--bg-surface-hover);
+    }
+
+    .radar-stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .radar-stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    /* ==========================================================================
+       PAGE 2: INGESTION WORKBENCH
+       ========================================================================== */
+    #pageWorkbench {
+      flex-direction: column;
+      gap: 20px;
+      margin: auto 0;
+    }
+
+    .view-top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .btn-nav-back {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      border-radius: 9999px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--shadow-subtle);
+      transition: all 120ms ease;
+    }
+
+    .btn-nav-back:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-medium);
+      transform: translateY(-1px);
+    }
+
+    .workbench-header {
+      margin-bottom: 14px;
+    }
+
+    .workbench-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+    }
+
+    .workbench-desc {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    .preset-chip-list {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .preset-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-right: 4px;
+    }
+
+    .preset-chip {
+      background: var(--bg-surface-alt);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 120ms ease;
+    }
+
+    .preset-chip:hover {
+      background: var(--text-main);
+      color: var(--bg-card);
+      border-color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    .preset-chip.highlight {
+      border-color: var(--color-destructive);
+      color: var(--color-destructive);
+      font-weight: 600;
+    }
+
+    .preset-chip.highlight:hover {
+      background: var(--color-destructive);
+      color: #ffffff;
+    }
+
+    .dropzone {
+      border: 1px dashed var(--border-medium);
+      background: var(--bg-surface-alt);
+      border-radius: 18px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 150ms ease;
+      margin-bottom: 14px;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      background: var(--bg-surface-hover);
+      border-color: var(--text-main);
+      transform: translateY(-1px);
+    }
+
+    .dropzone-icon {
+      font-size: 22px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .dropzone-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .dropzone-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    .log-textarea {
+      width: 100%;
+      height: 160px;
+      background: var(--bg-input);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      transition: all 150ms ease;
+      box-sizing: border-box;
+    }
+
+    .log-textarea:focus-visible {
+      border-color: var(--text-main);
+    }
+
+    .action-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+    }
+
+    .state-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .state-indicator.empty {
+      color: var(--text-muted);
+    }
+
+    .state-indicator.ready {
+      color: var(--color-success);
+      font-weight: 500;
+    }
+
+    .btn-analyze {
+      background: var(--color-ink-black);
+      color: var(--color-paper-white);
+      border: none;
+      border-radius: 9999px;
+      padding: 10px 22px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 180ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-analyze:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    }
+
+    .btn-analyze:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-clear {
+      background: var(--bg-surface-alt);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .btn-clear:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-medium);
+      transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       PAGE 3: RESULT DASHBOARD VIEW
+       ========================================================================== */
+    #pageResult {
+      flex-direction: column;
+      gap: 20px;
+      padding-bottom: 20px;
+    }
+
+    .status-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 20px 24px;
+      box-shadow: var(--shadow-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: relative;
+      overflow: hidden;
+      animation: cascade-pop 450ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes cascade-pop {
+      from { opacity: 0; transform: translateY(22px) scale(0.985); filter: blur(3px); }
+      to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0px); }
+    }
+
+    .status-banner.critical {
+      border-left: 5px solid var(--color-destructive);
+      background: linear-gradient(to right, var(--color-destructive-soft), var(--bg-card) 35%);
+    }
+
+    .status-banner.warning {
+      border-left: 5px solid var(--color-warning);
+      background: linear-gradient(to right, var(--color-warning-soft), var(--bg-card) 35%);
+    }
+
+    .status-banner.normal {
+      border-left: 5px solid var(--color-success);
+    }
+
+    .status-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .status-icon-box {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .status-banner.critical .status-icon-box {
+      background: var(--color-destructive-soft);
+      border-color: var(--color-destructive-border);
+      color: var(--color-destructive);
+    }
+
+    .status-banner.normal .status-icon-box {
+      background: var(--color-success-soft);
+      border-color: var(--color-success-border);
+      color: var(--color-success);
+    }
+
+    .status-title {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .status-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      background: var(--color-ink-black);
+      color: var(--color-paper-white);
+      flex-shrink: 0;
+    }
+
+    .status-banner.critical .status-badge {
+      background: var(--color-destructive);
+      color: #ffffff;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 18px;
+      box-shadow: var(--shadow-subtle);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease;
+      animation: cascade-pop 480ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+
+    .metric-card:nth-child(1) { animation-delay: 80ms; }
+    .metric-card:nth-child(2) { animation-delay: 140ms; }
+    .metric-card:nth-child(3) { animation-delay: 200ms; }
+    .metric-card:nth-child(4) { animation-delay: 260ms; }
+
+    .metric-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-floating);
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      margin-top: 4px;
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-value.destructive {
+      color: var(--color-destructive);
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: var(--shadow-subtle);
+      animation: cascade-pop 550ms cubic-bezier(0.22, 1, 0.36, 1) 320ms forwards;
+      opacity: 0;
+    }
+
+    .section-title {
+      font-family: 'Source Serif 4', Georgia, serif;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .chart-legend {
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+    }
+
+    .svg-chart-container {
+      width: 100%;
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bar-rect {
+      transform-origin: bottom;
+      animation: bar-wave-rise 680ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      cursor: pointer;
+      transition: opacity 140ms ease;
+    }
+
+    @keyframes bar-wave-rise {
+      from { transform: scaleY(0); opacity: 0; }
+      to { transform: scaleY(1); opacity: 1; }
+    }
+
+    .bar-rect:hover {
+      opacity: 0.82;
+    }
+
+    .bar-spike {
+      fill: var(--color-destructive);
+      animation: bar-wave-rise 680ms cubic-bezier(0.22, 1, 0.36, 1) forwards, spike-pulse 2.2s infinite ease-in-out 700ms;
+    }
+
+    @keyframes spike-pulse {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 0px var(--color-destructive)); }
+      50% { opacity: 0.85; filter: drop-shadow(0 2px 6px var(--color-destructive-border)); }
+    }
+
+    .incidents-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      animation: cascade-pop 550ms cubic-bezier(0.22, 1, 0.36, 1) 400ms forwards;
+      opacity: 0;
+    }
+
+    .incident-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow-subtle);
+      transition: transform 180ms ease;
+    }
+
+    .incident-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-floating);
+    }
+
+    .incident-card.critical-border {
+      border-left: 4px solid var(--color-destructive);
+    }
+
+    .incident-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .incident-window-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .badge-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .badge-critical {
+      background: var(--color-destructive);
+      color: #ffffff;
+    }
+
+    .badge-warning {
+      background: var(--color-warning);
+      color: #ffffff;
+    }
+
+    .badge-soft {
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .badge-outline {
+      border: 1px solid var(--border-medium);
+      color: var(--text-muted);
+      background: transparent;
+    }
+
+    .inc-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .inc-stat-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .inc-stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .inc-stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .inc-stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .inc-stat-value.destructive {
+      color: var(--color-destructive);
+    }
+
+    .evidence-toggle-btn {
+      width: 100%;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: 9999px;
+      padding: 10px 18px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 120ms ease;
+    }
+
+    .evidence-toggle-btn:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-medium);
+    }
+
+    .evidence-arrow {
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      font-size: 11px;
+    }
+
+    .evidence-toggle-btn.expanded .evidence-arrow {
+      transform: rotate(180deg);
+    }
+
+    .accordion-grid-wrapper {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .accordion-grid-wrapper.expanded {
+      grid-template-rows: 1fr;
+    }
+
+    .accordion-overflow-inner {
+      overflow: hidden;
+    }
+
+    .evidence-content-box {
+      margin-top: 12px;
+      background: var(--bg-surface-alt);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 16px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: var(--shadow-subtle);
+      overflow-x: auto;
+      animation: cascade-pop 600ms cubic-bezier(0.22, 1, 0.36, 1) 460ms forwards;
+      opacity: 0;
+    }
+
+    .telemetry-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .telemetry-table th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .telemetry-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .telemetry-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .spike-highlight-row {
+      background: var(--color-destructive-soft);
+    }
+
+    .spike-highlight-row td {
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       FOOTER
+       ========================================================================== */
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 11px;
+      color: var(--text-muted);
+      animation: nav-slide-down 450ms ease forwards;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LogSense Staggered Letter Intro Sequence -->
+  <div id="introOverlay" role="dialog" aria-modal="true" aria-label="Loading LogSense Application">
+    <div class="intro-logo-container">
+      <img src="/static/assets/logo.png" alt="LogSense Emblem" class="intro-badge-icon">
+      <div class="intro-typewriter-text" id="introLettersContainer" aria-label="LogSense">
+        <!-- Rendered with staggered spans -->
+      </div>
+    </div>
+    <div id="introTagline" class="intro-tagline">Statistical Anomaly Sentinel</div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- Navbar with Custom Logo -->
+    <header class="navbar" role="banner">
+      <button id="navBrandHome" class="brand-group" type="button" aria-label="LogSense Home">
+        <img src="/static/assets/logo.png" alt="LogSense Logo" class="brand-logo-img">
+        <span class="brand-title">
+          LogSense
+          <span class="brand-badge">v2.4 Enterprise</span>
+        </span>
+      </button>
+      <div class="nav-actions">
+        <div class="status-badge-pill" role="status" aria-label="Analytics Engine Online">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>Analytics Engine Online</span>
+        </div>
+        <button id="themeToggleBtn" class="theme-toggle-btn" type="button" aria-label="Toggle dark and light color theme">
+          <span id="themeToggleIcon" aria-hidden="true">🌙</span>
+          <span id="themeToggleText">Dark</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         PAGE 1: HERO LANDING VIEW (Fits Viewport Height)
+         ==================================================================== -->
+    <main id="pageLanding" class="page-view active" role="main" aria-label="Home Landing Page">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot" aria-hidden="true"></span>
+        <span>Automated Error Trend Detector</span>
+      </div>
+
+      <h1 class="hero-headline" id="heroHeadlineEl">
+        From Raw Logs to Explainable Error Trends
+      </h1>
+
+      <p class="hero-subhead">
+        Calculate hourly error volumes, identify peak error periods, and flag sudden spikes using dynamic local baselines with explicit statistical thresholds.
+      </p>
+
+      <div class="hero-cta-group">
+        <button id="btnLaunchAnalyzer" class="btn-pill-primary" type="button">
+          <span>Launch Live Analyzer</span>
+          <span aria-hidden="true">→</span>
+        </button>
+        <button id="btnStreamDemo" class="btn-pill-ghost" type="button">
+          <span>⚡ Run Live Simulation</span>
+        </button>
+      </div>
+
+      <!-- Floating Product Artifact: Error Trend Pipeline -->
+      <div class="hero-visual-card">
+        <div class="hero-radar-header">
+          <span>Error Trend Detection Pipeline</span>
+          <span class="radar-live-indicator">
+            <span class="status-dot" style="background: var(--color-destructive);" aria-hidden="true"></span>
+            <span>Real-time Sentinel Active</span>
+          </span>
+        </div>
+
+        <div class="radar-scanner-track" aria-hidden="true">
+          <div class="radar-scanner-bar"></div>
+        </div>
+
+        <div class="hero-radar-metrics">
+          <div class="radar-stat-box">
+            <div class="radar-stat-label">Baseline Sensitivity</div>
+            <div id="typewriterBaseline" class="radar-stat-val">&plusmn;2 Hour Rolling Window</div>
+          </div>
+          <div class="radar-stat-box">
+            <div class="radar-stat-label">Confidence Rating</div>
+            <div class="radar-stat-val" style="color: var(--color-success);">HIGH (Z &ge; 2.0&sigma;)</div>
+          </div>
+          <div class="radar-stat-box">
+            <div class="radar-stat-label">Parsed Log Levels</div>
+            <div class="radar-stat-val">INFO &bull; WARNING &bull; ERROR</div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ====================================================================
+         PAGE 2: INGESTION WORKBENCH VIEW
+         ==================================================================== -->
+    <main id="pageWorkbench" class="page-view card" role="main" aria-label="Log Ingestion Workbench">
+      <div class="view-top-nav">
+        <button id="btnBackToHomeFromWorkbench" class="btn-nav-back" type="button" aria-label="Back to Home">
+          <span aria-hidden="true">←</span>
+          <span>Back to Home</span>
+        </button>
+        <div style="font-size: 12px; color: var(--text-muted);">Step 1 of 2: Ingest & Verify</div>
+      </div>
+
+      <div class="workbench-header">
+        <h2 class="workbench-title">Log Ingestion & Baseline Analysis</h2>
+        <p class="workbench-desc">Analyze timestamped log entries to calculate hourly errors, identify peak hours, and detect sudden statistical spikes.</p>
+      </div>
+
+      <div class="preset-chip-list" role="group" aria-label="Pre-loaded Test Datasets">
+        <span class="preset-label">Test Datasets:</span>
+        <button class="preset-chip highlight" type="button" data-preset="sample_clean_spike.log">⚡ Load Demo Logs</button>
+        <button class="preset-chip" type="button" data-preset="test_logs.txt">test_logs.txt (New)</button>
+        <button class="preset-chip" type="button" data-preset="sample_multi_spike.log">Multi-Spike</button>
+        <button class="preset-chip" type="button" data-preset="sample_no_spike.log">Normal Traffic</button>
+        <button class="preset-chip" type="button" data-preset="sample_tiny.log">Tiny Dataset</button>
+        <button class="preset-chip" type="button" data-preset="sample_malformed.log">Malformed</button>
+      </div>
+
+      <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="Upload log file by drag and drop or clicking">
+        <div class="dropzone-icon" aria-hidden="true">↑</div>
+        <div class="dropzone-text">Drop .log or .txt file here, or click to browse</div>
+        <div class="dropzone-sub">Supports canonical log format (YYYY-MM-DD HH:MM:SS LEVEL MESSAGE) up to 5 MB</div>
+        <input type="file" id="fileInput" accept=".log,.txt" style="display:none;" aria-hidden="true">
+      </div>
+
+      <label for="logTextarea" style="display:none;">Raw log entries</label>
+      <textarea id="logTextarea" class="log-textarea" placeholder="Or paste raw timestamped log entries here (e.g. 2026-08-16 11:22:01 ERROR API request failed: 500)..." spellcheck="false" aria-label="Log text input area"></textarea>
+
+      <div class="action-strip">
+        <div id="stateStatusIndicator" class="state-indicator empty" role="status" aria-live="polite">
+          <span aria-hidden="true">○</span>
+          <span>No analysis yet &bull; Upload or paste logs to begin.</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button id="btnClearInput" class="btn-clear" type="button" style="display: none;" aria-label="Clear log input">Clear</button>
+          <button id="btnAnalyze" class="btn-analyze" type="button" disabled aria-label="Analyze submitted logs">
+            <span>Analyze Logs</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- ====================================================================
+         PAGE 3: RESULT DASHBOARD VIEW
+         ==================================================================== -->
+    <main id="pageResult" class="page-view" role="main" aria-label="Analysis Results">
+      <div class="view-top-nav">
+        <button id="btnBackToWorkbench" class="btn-nav-back" type="button" aria-label="Back to Workbench">
+          <span aria-hidden="true">←</span>
+          <span>Back to Workbench</span>
+        </button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div id="analyzedMetadataTag" style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+            Analysis Complete
+          </div>
+          <button id="btnHomeFromResult" class="btn-nav-back" type="button" aria-label="Go to Home">
+            <span>Home</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 1. Spike Alert Banner -->
+      <div id="statusBanner" class="status-banner normal" role="region" aria-live="polite" aria-label="Spike Status Banner">
+        <div class="status-banner-left">
+          <div class="status-icon-box" id="statusIconBox" aria-hidden="true">✓</div>
+          <div>
+            <div id="statusTitle" class="status-title">SYSTEM NORMAL</div>
+            <div id="statusSubtitle" class="status-subtitle">All analyzed hours are within baseline error margins.</div>
+          </div>
+        </div>
+        <div id="statusBadge" class="status-badge">NORMAL</div>
+      </div>
+
+      <!-- 2. Summary Metric Cards with Animated Counters -->
+      <div class="metrics-grid" role="region" aria-label="Summary Metrics">
+        <div class="metric-card">
+          <div class="metric-label">Total Logs</div>
+          <div id="valTotalEntries" class="metric-value">0</div>
+          <div class="metric-sub">Parsed log lines</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Total Errors</div>
+          <div id="valTotalErrors" class="metric-value">0</div>
+          <div class="metric-sub">Across all hours</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Peak Error Hour</div>
+          <div id="valPeakHour" class="metric-value" style="font-size: 18px; font-family: 'JetBrains Mono', monospace;">—</div>
+          <div id="valPeakHourSub" class="metric-sub">Highest error count</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-label">Detected Spikes</div>
+          <div id="valSpikeCount" class="metric-value">0</div>
+          <div class="metric-sub">Sudden error anomalies</div>
+        </div>
+      </div>
+
+      <!-- 3. Hourly Error Trend Chart -->
+      <section class="chart-card" aria-label="Hourly Error Trend Chart">
+        <div class="section-title">
+          <span>Hourly Error Trend</span>
+          <div class="chart-legend" aria-hidden="true">
+            <div class="legend-item">
+              <span class="legend-dot" style="background: var(--chart-bar-baseline);"></span>
+              <span>Baseline Hours</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background: var(--color-destructive);"></span>
+              <span>Sudden Spike</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="chartWrapper" class="svg-chart-container" role="img" aria-label="Hourly Error Trend Chart Graphic">
+          <!-- Dynamic SVG Bar Chart -->
+        </div>
+      </section>
+
+      <!-- 4. Incident / Spike Breakdown Details -->
+      <section id="incidentsContainer" class="incidents-section" aria-label="Spike Analysis Details">
+        <!-- Rendered dynamically -->
+      </section>
+
+      <!-- 5. Hourly Error Distribution Table -->
+      <section class="table-container" aria-label="Hourly Error Distribution Table">
+        <div class="section-title">
+          <span>Hourly Error Distribution</span>
+        </div>
+        <table class="telemetry-table">
+          <caption style="display:none;">Hourly Error and Log Volume Breakdown</caption>
+          <thead>
+            <tr>
+              <th scope="col">Hour (UTC)</th>
+              <th scope="col">Total Logs</th>
+              <th scope="col">Error Count</th>
+              <th scope="col">Warnings</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody id="telemetryTableBody">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                No telemetry loaded
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <!-- Hidden element for automated QA -->
+    <div id="valTotalHours" style="display:none;">0</div>
+
+    <!-- Footer (Fits on screen without scroll) -->
+    <footer class="footer" role="contentinfo">
+      <div>LogSense &bull; Statistical Error Trend Detector</div>
+      <div>Deterministic Anomaly Modeling Engine</div>
+    </footer>
+  </div>
+
+  <!-- Client-Side JavaScript Logic -->
+  <script>
+    // ── Staggered Letter Intro Sequence ──────────────────────────────────────
+    const introOverlay = document.getElementById('introOverlay');
+    const introLettersContainer = document.getElementById('introLettersContainer');
+    const introTagline = document.getElementById('introTagline');
+
+    async function runLettersIntro() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('skip_intro') === 'true' || params.get('autoload') || params.get('demo') || params.get('metrics')) {
+        introOverlay.classList.add('hidden');
+        animateHeroHeadline();
+        return;
+      }
+
+      const word = 'LogSense';
+      introLettersContainer.innerHTML = '';
+
+      for (let i = 0; i < word.length; i++) {
+        const span = document.createElement('span');
+        span.className = 'intro-char';
+        span.style.animationDelay = `${i * 55}ms`;
+        span.textContent = word[i];
+        introLettersContainer.appendChild(span);
+      }
+
+      setTimeout(() => {
+        introTagline.classList.add('show');
+      }, word.length * 55 + 150);
+
+      setTimeout(() => {
+        introOverlay.classList.add('hidden');
+        animateHeroHeadline();
+      }, word.length * 55 + 650);
+    }
+
+    // ── Staggered Hero Headline Reveal ───────────────────────────────────────
+    function animateHeroHeadline() {
+      const el = document.getElementById('heroHeadlineEl');
+      if (!el || el.dataset.animated) return;
+      el.dataset.animated = 'true';
+
+      const text = el.innerText.trim();
+      const words = text.split(' ');
+      el.innerHTML = '';
+
+      let globalCharIndex = 0;
+      words.forEach((word) => {
+        const wordWrap = document.createElement('span');
+        wordWrap.style.display = 'inline-block';
+        wordWrap.style.whiteSpace = 'nowrap';
+        wordWrap.style.marginRight = '0.28em';
+
+        for (let i = 0; i < word.length; i++) {
+          const charSpan = document.createElement('span');
+          charSpan.className = 'letter-span';
+          charSpan.style.animationDelay = `${globalCharIndex * 18}ms`;
+          charSpan.textContent = word[i];
+          wordWrap.appendChild(charSpan);
+          globalCharIndex++;
+        }
+        el.appendChild(wordWrap);
+      });
+    }
+
+    runLettersIntro();
+
+    // ── Theme Manager ────────────────────────────────────────────────────────
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeToggleIcon = document.getElementById('themeToggleIcon');
+    const themeToggleText = document.getElementById('themeToggleText');
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      if (theme === 'dark') {
+        themeToggleIcon.textContent = '☀️';
+        themeToggleText.textContent = 'Light';
+      } else {
+        themeToggleIcon.textContent = '🌙';
+        themeToggleText.textContent = 'Dark';
+      }
+      localStorage.setItem('logsense_theme', theme);
+      if (window.__LAST_DATA__) {
+        renderChart(window.__LAST_DATA__.hours, window.__LAST_DATA__.buckets, window.__LAST_DATA__.spikes);
+      }
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'light' ? 'dark' : 'light');
+    });
+
+    const savedTheme = localStorage.getItem('logsense_theme') || 'light';
+    applyTheme(savedTheme);
+
+    // ── Cinematic Two-Stage SPA View Router with Smooth Exit & Entrance ──────
+    const pageLanding = document.getElementById('pageLanding');
+    const pageWorkbench = document.getElementById('pageWorkbench');
+    const pageResult = document.getElementById('pageResult');
+
+    const PAGE_MAP = {
+      'landing': pageLanding,
+      'workbench': pageWorkbench,
+      'result': pageResult
+    };
+
+    let currentPage = 'landing';
+    let isTransitioning = false;
+
+    function navigateToPage(targetPage, direction = 'forward') {
+      if (currentPage === targetPage || isTransitioning) return;
+      isTransitioning = true;
+
+      const currentEl = PAGE_MAP[currentPage];
+      const targetEl = PAGE_MAP[targetPage];
+
+      const exitClass = direction === 'forward' ? 'exiting-forward' : 'exiting-backward';
+      currentEl.classList.add(exitClass);
+
+      setTimeout(() => {
+        currentEl.classList.remove('active', 'exiting-forward', 'exiting-backward');
+
+        const enterClass = direction === 'forward' ? 'entering-forward' : 'entering-backward';
+        targetEl.classList.add(enterClass, 'active');
+
+        void targetEl.offsetWidth; // Trigger browser reflow
+
+        targetEl.classList.remove('entering-forward', 'entering-backward');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        currentPage = targetPage;
+        isTransitioning = false;
+      }, 240);
+    }
+
+    document.getElementById('navBrandHome').addEventListener('click', () => navigateToPage('landing', 'backward'));
+    document.getElementById('btnLaunchAnalyzer').addEventListener('click', () => navigateToPage('workbench', 'forward'));
+    document.getElementById('btnBackToHomeFromWorkbench').addEventListener('click', () => navigateToPage('landing', 'backward'));
+    document.getElementById('btnBackToWorkbench').addEventListener('click', () => navigateToPage('workbench', 'backward'));
+    document.getElementById('btnHomeFromResult').addEventListener('click', () => navigateToPage('landing', 'backward'));
+
+    // ── DOM References ───────────────────────────────────────────────────────
+    const btnStreamDemo = document.getElementById('btnStreamDemo');
+    const logTextarea = document.getElementById('logTextarea');
+    const btnAnalyze = document.getElementById('btnAnalyze');
+    const btnClearInput = document.getElementById('btnClearInput');
+    const stateStatusIndicator = document.getElementById('stateStatusIndicator');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+
+    const statusBanner = document.getElementById('statusBanner');
+    const statusIconBox = document.getElementById('statusIconBox');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusSubtitle = document.getElementById('statusSubtitle');
+    const statusBadge = document.getElementById('statusBadge');
+
+    const valTotalEntries = document.getElementById('valTotalEntries');
+    const valTotalHours = document.getElementById('valTotalHours');
+    const valTotalErrors = document.getElementById('valTotalErrors');
+    const valPeakHour = document.getElementById('valPeakHour');
+    const valPeakHourSub = document.getElementById('valPeakHourSub');
+    const valSpikeCount = document.getElementById('valSpikeCount');
+
+    const chartWrapper = document.getElementById('chartWrapper');
+    const incidentsContainer = document.getElementById('incidentsContainer');
+    const telemetryTableBody = document.getElementById('telemetryTableBody');
+    const analyzedMetadataTag = document.getElementById('analyzedMetadataTag');
+
+    let loadedFile = null;
+
+    // ── Live Stream Simulation Demo ──────────────────────────────────────────
+    btnStreamDemo.addEventListener('click', async () => {
+      try {
+        btnStreamDemo.disabled = true;
+        btnStreamDemo.innerHTML = `<span>⚡ Streaming Simulation...</span>`;
+        
+        navigateToPage('workbench', 'forward');
+
+        const res = await fetch('/test_data/sample_clean_spike.log');
+        const text = await res.text();
+        const lines = text.split('\n');
+        logTextarea.value = '';
+
+        let currentText = '';
+        for (let i = 0; i < lines.length; i += 6) {
+          const chunk = lines.slice(i, i + 6).join('\n');
+          currentText += (currentText ? '\n' : '') + chunk;
+          logTextarea.value = currentText;
+          logTextarea.scrollTop = logTextarea.scrollHeight;
+          updateInputState();
+          await new Promise(r => setTimeout(r, 45));
+        }
+
+        loadedFile = { name: 'sample_clean_spike.log (Live Simulation)' };
+        updateInputState();
+        await triggerAnalysis();
+      } catch (e) {
+        console.error('Simulation error:', e);
+      } finally {
+        btnStreamDemo.disabled = false;
+        btnStreamDemo.innerHTML = `<span>⚡ Run Live Simulation</span>`;
+      }
+    });
+
+    // ── Input State Manager ──────────────────────────────────────────────────
+    function updateInputState() {
+      const text = logTextarea.value.trim();
+      if (text.length > 0) {
+        const lineCount = text.split('\n').filter(l => l.trim().length > 0).length;
+        const sourceName = loadedFile ? loadedFile.name : 'Pasted log stream';
+        stateStatusIndicator.className = 'state-indicator ready';
+        stateStatusIndicator.innerHTML = `<span aria-hidden="true">✓</span><span><strong>Uploaded: ${escapeHtml(sourceName)}</strong> &bull; ${lineCount} log entries ready to analyze.</span>`;
+        btnAnalyze.disabled = false;
+        btnClearInput.style.display = 'inline-block';
+      } else {
+        loadedFile = null;
+        stateStatusIndicator.className = 'state-indicator empty';
+        stateStatusIndicator.innerHTML = `<span aria-hidden="true">○</span><span>No analysis yet &bull; Upload or paste logs to begin.</span>`;
+        btnAnalyze.disabled = true;
+        btnClearInput.style.display = 'none';
+      }
+    }
+
+    logTextarea.addEventListener('input', () => {
+      loadedFile = null;
+      updateInputState();
+    });
+
+    btnClearInput.addEventListener('click', () => {
+      logTextarea.value = '';
+      loadedFile = null;
+      fileInput.value = '';
+      updateInputState();
+    });
+
+    // ── Presets Handler ──────────────────────────────────────────────────────
+    document.querySelectorAll('.preset-chip').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const file = btn.getAttribute('data-preset');
+        try {
+          btn.disabled = true;
+          const res = await fetch(`/test_data/${file}`);
+          if (!res.ok) throw new Error(`Failed to load ${file}`);
+          const text = await res.text();
+          loadedFile = { name: file };
+          logTextarea.value = text;
+          updateInputState();
+          logTextarea.scrollTop = 0;
+        } catch (e) {
+          alert('Error loading sample dataset: ' + e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    });
+
+    // ── Drag and Drop & Keyboard Access ──────────────────────────────────────
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        const text = await file.text();
+        loadedFile = file;
+        logTextarea.value = text;
+        updateInputState();
+      }
+    });
+
+    fileInput.addEventListener('change', async (e) => {
+      if (e.target.files.length > 0) {
+        const file = e.target.files[0];
+        const text = await file.text();
+        loadedFile = file;
+        logTextarea.value = text;
+        updateInputState();
+      }
+    });
+
+    // ── Exponential Deceleration Rolling Counter ─────────────────────────────
+    function animateCounter(element, target, duration = 720) {
+      if (!element) return;
+      const startTime = performance.now();
+      const startVal = 0;
+
+      function update(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        const currentVal = Math.round(startVal + (target - startVal) * easeOut);
+        element.textContent = currentVal.toLocaleString();
+
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        } else {
+          element.textContent = target.toLocaleString();
+        }
+      }
+      requestAnimationFrame(update);
+    }
+
+    // ── Trigger Analysis ─────────────────────────────────────────────────────
+    btnAnalyze.addEventListener('click', triggerAnalysis);
+
+    async function triggerAnalysis() {
+      const text = logTextarea.value.trim();
+      if (!text) {
+        alert('Please enter or upload log entries first.');
+        return;
+      }
+
+      btnAnalyze.disabled = true;
+      btnAnalyze.innerHTML = `<span>✦ Analyzing Baselines...</span>`;
+
+      try {
+        const res = await fetch('/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw_text: text })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.detail || 'Analysis request failed');
+        }
+
+        await new Promise(r => setTimeout(r, 180)); // Micro pause for smooth feel
+
+        renderDashboard(data);
+        navigateToPage('result', 'forward');
+      } catch (err) {
+        alert('Analysis error: ' + err.message);
+      } finally {
+        btnAnalyze.disabled = false;
+        btnAnalyze.innerHTML = `<span>Analyze Logs</span><span aria-hidden="true">→</span>`;
+      }
+    }
+
+    // ── Dashboard Master Renderer ────────────────────────────────────────────
+    function renderDashboard(data) {
+      window.__LAST_DATA__ = data;
+      const { entry_count, buckets, peak_hour, spikes, incidents } = data;
+      const hours = Object.keys(buckets).sort();
+
+      analyzedMetadataTag.textContent = `Analyzed ${entry_count} log entries across ${hours.length} hours`;
+
+      // 1. Summary Metrics
+      let totalErrors = 0;
+      hours.forEach(h => { totalErrors += buckets[h].error_count; });
+
+      animateCounter(valTotalEntries, entry_count, 680);
+      valTotalHours.textContent = hours.length.toString();
+      animateCounter(valTotalErrors, totalErrors, 740);
+      valPeakHour.textContent = peak_hour ? peak_hour : 'None';
+      valPeakHourSub.textContent = peak_hour ? `${buckets[peak_hour].error_count} errors at peak` : '0 errors';
+      animateCounter(valSpikeCount, incidents.length, 520);
+
+      if (incidents.length > 0) {
+        valSpikeCount.classList.add('destructive');
+      } else {
+        valSpikeCount.classList.remove('destructive');
+      }
+
+      // 2. Spike Alert Banner
+      if (incidents.length > 0) {
+        const hasCritical = incidents.some(i => i.card.severity === 'Critical');
+        const peakIncident = incidents[0].card;
+        statusBanner.className = `status-banner ${hasCritical ? 'critical' : 'warning'}`;
+        statusIconBox.textContent = '!';
+        statusTitle.textContent = `SUDDEN ERROR SPIKE DETECTED (${peakIncident.window})`;
+        statusSubtitle.textContent = `${peakIncident.error_count} errors in this hour vs a local baseline of ${peakIncident.baseline !== null ? peakIncident.baseline.toFixed(1) : '0'} (+${peakIncident.deviation_pct !== null ? peakIncident.deviation_pct.toFixed(1) : '0'}% sudden deviation).`;
+        statusBadge.textContent = 'SPIKE ALERT';
+      } else {
+        statusBanner.className = 'status-banner normal';
+        statusIconBox.textContent = '✓';
+        statusTitle.textContent = 'SYSTEM NORMAL';
+        statusSubtitle.textContent = `All ${hours.length} analyzed hours are within baseline error margins. No sudden spikes detected.`;
+        statusBadge.textContent = 'NORMAL';
+      }
+
+      // 3. Render Visual Components
+      renderChart(hours, buckets, spikes);
+      renderIncidents(incidents);
+      renderTelemetryTable(hours, buckets, spikes);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ── Hourly Trend Bar Chart ───────────────────────────────────────────────
+    function renderChart(hours, buckets, spikes) {
+      if (hours.length === 0) {
+        chartWrapper.innerHTML = `
+          <div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 13px;">
+            No hourly telemetry available
+          </div>
+        `;
+        return;
+      }
+
+      const spikeMap = new Map();
+      spikes.forEach(s => {
+        if (s.is_spike) spikeMap.set(s.hour, s);
+      });
+
+      const maxErrors = Math.max(...hours.map(h => buckets[h].error_count), 1);
+
+      const chartW = 800;
+      const chartH = 170;
+      const paddingX = 40;
+      const paddingBottom = 30;
+      const paddingTop = 20;
+      const plotW = chartW - paddingX * 2;
+      const plotH = chartH - paddingTop - paddingBottom;
+
+      const numBars = hours.length;
+      const barSlotW = plotW / numBars;
+      const barWidth = Math.min(36, Math.max(14, barSlotW * 0.55));
+
+      // Gridlines
+      let gridLines = '';
+      const gridLevels = [0, Math.round(maxErrors / 2), maxErrors];
+      gridLevels.forEach(val => {
+        const y = paddingTop + plotH - (val / maxErrors) * plotH;
+        gridLines += `
+          <line x1="${paddingX}" y1="${y}" x2="${chartW - paddingX}" y2="${y}" stroke="var(--chart-grid)" stroke-width="1" stroke-dasharray="3 3"/>
+          <text x="${paddingX - 10}" y="${y + 4}" font-family="'JetBrains Mono', monospace" font-size="10" fill="var(--chart-text)" text-anchor="end">${val}</text>
+        `;
+      });
+
+      // Bars with Staggered Delays
+      let bars = '';
+      hours.forEach((h, i) => {
+        const errCount = buckets[h].error_count;
+        const isSpike = spikeMap.has(h);
+        const barHeight = Math.max(4, (errCount / maxErrors) * plotH);
+        const x = paddingX + i * barSlotW + (barSlotW - barWidth) / 2;
+        const y = paddingTop + plotH - barHeight;
+        const timeLabel = h.split(' ')[1] || h;
+
+        const barClass = isSpike ? 'bar-rect bar-spike' : 'bar-rect';
+        const barFill = isSpike ? 'var(--color-destructive)' : 'var(--chart-bar-baseline)';
+        const delayMs = i * 45;
+
+        bars += `
+          <g>
+            <rect class="${barClass}" style="animation-delay: ${delayMs}ms;" x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="4" fill="${barFill}" tabindex="0" role="graphics-symbol" aria-label="${escapeHtml(h)}: ${errCount} errors">
+              <title>${escapeHtml(h)}: ${errCount} errors (${buckets[h].total_count} total logs)</title>
+            </rect>
+            <text x="${x + barWidth / 2}" y="${chartH - 8}" font-family="'JetBrains Mono', monospace" font-size="11" fill="var(--chart-text)" text-anchor="middle">
+              ${timeLabel}
+            </text>
+          </g>
+        `;
+      });
+
+      chartWrapper.innerHTML = `
+        <svg viewBox="0 0 ${chartW} ${chartH}" preserveAspectRatio="none" style="width: 100%; height: 100%;" role="graphics-document" aria-label="Hourly error count visualization">
+          ${gridLines}
+          ${bars}
+        </svg>
+      `;
+    }
+
+    // ── Incident & Evidence Renderers ────────────────────────────────────────
+    function renderIncidents(incidents) {
+      if (!incidents || incidents.length === 0) {
+        incidentsContainer.innerHTML = `
+          <div class="card" style="text-align: center; padding: 32px 20px;">
+            <div style="font-size: 24px; color: var(--color-success); margin-bottom: 6px;">✓</div>
+            <div style="font-size: 15px; font-weight: 600; color: var(--text-main);">No Sudden Error Spikes Flagged</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Hourly error counts remained within normal statistical thresholds across the sample window.</div>
+          </div>
+        `;
+        return;
+      }
+
+      incidentsContainer.innerHTML = incidents.map((inc, index) => {
+        const card = inc.card;
+        const evidence = inc.evidence;
+        const category = card.category || 'Other';
+        const isCritical = card.severity === 'Critical';
+
+        const devStr = card.deviation_pct !== null ? `+${card.deviation_pct.toFixed(1)}%` : 'N/A';
+        const zScoreStr = evidence.z_score !== null ? evidence.z_score.toFixed(2) : 'N/A';
+        const baselineStr = card.baseline !== null ? card.baseline.toFixed(1) : 'None';
+
+        return `
+          <div class="incident-card ${isCritical ? 'critical-border' : ''}">
+            <div class="incident-header">
+              <div class="incident-window-title">⏱ Spike Hour: ${escapeHtml(card.window)}</div>
+              <div class="badge-group">
+                <span class="badge ${isCritical ? 'badge-critical' : 'badge-warning'}">${escapeHtml(card.severity)}</span>
+                <span class="badge badge-soft">${escapeHtml(category)}</span>
+                <span class="badge badge-outline">${escapeHtml(card.confidence)} CONFIDENCE</span>
+              </div>
+            </div>
+
+            <div class="inc-stat-grid">
+              <div class="inc-stat-item">
+                <span class="inc-stat-label">Spike Errors</span>
+                <span class="inc-stat-value ${isCritical ? 'destructive' : ''}">${card.error_count}</span>
+              </div>
+              <div class="inc-stat-item">
+                <span class="inc-stat-label">Local Baseline</span>
+                <span class="inc-stat-value">${baselineStr}</span>
+              </div>
+              <div class="inc-stat-item">
+                <span class="inc-stat-label">Baseline Deviation</span>
+                <span class="inc-stat-value">${devStr}</span>
+              </div>
+              <div class="inc-stat-item">
+                <span class="inc-stat-label">Z-Score</span>
+                <span class="inc-stat-value">${zScoreStr}</span>
+              </div>
+            </div>
+
+            <button class="evidence-toggle-btn" type="button" onclick="toggleEvidencePanel(${index})" aria-expanded="false" aria-controls="accordionWrapper_${index}" id="toggleBtn_${index}">
+              <span>Why was this flagged? (Statistical Explanation)</span>
+              <span class="evidence-arrow" aria-hidden="true">▼</span>
+            </button>
+
+            <div class="accordion-grid-wrapper" id="accordionWrapper_${index}" role="region" aria-labelledby="toggleBtn_${index}">
+              <div class="accordion-overflow-inner">
+                <div class="evidence-content-box">
+                  <strong>Statistical Reason:</strong><br>
+                  ${escapeHtml(evidence.reason)}
+                  <br><br>
+                  <strong>Supporting Calculation:</strong><br>
+                  &bull; Current Hour Errors: <code>${card.error_count}</code><br>
+                  &bull; Local Moving Baseline (&plusmn;2h): <code>${baselineStr}</code><br>
+                  &bull; Percentage Deviation: <code>${devStr}</code><br>
+                  &bull; Standardized Z-Score: <code>${zScoreStr}</code>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleEvidencePanel(index) {
+      const wrapper = document.getElementById(`accordionWrapper_${index}`);
+      const btn = document.getElementById(`toggleBtn_${index}`);
+      if (!wrapper || !btn) return;
+
+      const isExpanded = wrapper.classList.contains('expanded');
+      if (isExpanded) {
+        wrapper.classList.remove('expanded');
+        btn.classList.remove('expanded');
+        btn.setAttribute('aria-expanded', 'false');
+      } else {
+        wrapper.classList.add('expanded');
+        btn.classList.add('expanded');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    // ── Telemetry Table Renderer ─────────────────────────────────────────────
+    function renderTelemetryTable(hours, buckets, spikes) {
+      if (hours.length === 0) {
+        telemetryTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">
+              No telemetry available
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const spikeMap = new Map();
+      spikes.forEach(s => {
+        if (s.is_spike) spikeMap.set(s.hour, s);
+      });
+
+      telemetryTableBody.innerHTML = hours.map(h => {
+        const b = buckets[h];
+        const spikeInfo = spikeMap.get(h);
+        const isSpike = !!spikeInfo;
+        const rowClass = isSpike ? 'spike-highlight-row' : '';
+        const statusBadge = isSpike 
+          ? `<span class="badge badge-critical">SPIKE (${escapeHtml(spikeInfo.confidence)})</span>`
+          : `<span style="color: var(--text-muted); font-size: 11px;">Normal</span>`;
+
+        return `
+          <tr class="${rowClass}">
+            <td>${escapeHtml(h)}</td>
+            <td>${b.total_count}</td>
+            <td style="${b.error_count > 0 ? 'color: var(--color-destructive); font-weight: 600;' : ''}">${b.error_count}</td>
+            <td>${b.warning_count}</td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ── URL Autoload on DOMContentLoaded ─────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const requestedTheme = params.get('theme');
+      if (requestedTheme === 'dark' || requestedTheme === 'light') {
+        applyTheme(requestedTheme);
+      }
+
+      if (params.get('demo') === 'true') {
+        try {
+          const res = await fetch('/test_data/sample_clean_spike.log');
+          if (res.ok) {
+            const text = await res.text();
+            loadedFile = { name: 'sample_clean_spike.log' };
+            logTextarea.value = text;
+            updateInputState();
+            navigateToPage('workbench');
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      const autoload = params.get('autoload');
+      const shouldExpand = params.get('expand') === 'true';
+
+      if (autoload) {
+        const file = autoload.endsWith('.log') || autoload.endsWith('.txt')
+          ? autoload 
+          : (autoload === 'clean' ? 'sample_clean_spike.log' : `${autoload}.log`);
+        try {
+          const res = await fetch(`/test_data/${file}`);
+          if (res.ok) {
+            const text = await res.text();
+            loadedFile = { name: file };
+            logTextarea.value = text;
+            updateInputState();
+            await triggerAnalysis();
+
+            if (shouldExpand) {
+              setTimeout(() => {
+                toggleEvidencePanel(0);
+              }, 100);
+            }
+
+            if (params.get('metrics') === 'true') {
+              setTimeout(() => {
+                const clientW = document.documentElement.clientWidth;
+                const scrollW = document.body.scrollWidth;
+                const docScrollW = document.documentElement.scrollWidth;
+                const maxScrollW = Math.max(scrollW, docScrollW);
+                const overflowPx = Math.max(0, maxScrollW - clientW);
+
+                const summaryCards = Array.from(document.querySelectorAll('.metric-card')).map(card => {
+                  const label = card.querySelector('.metric-label') ? card.querySelector('.metric-label').innerText : '';
+                  const val = card.querySelector('.metric-value') ? card.querySelector('.metric-value').innerText : '';
+                  const rect = card.getBoundingClientRect();
+                  return { label, val, width: Math.round(rect.width), height: Math.round(rect.height), right: Math.round(rect.right) };
+                });
+
+                const incidentStats = Array.from(document.querySelectorAll('.inc-stat-item')).map(item => {
+                  const label = item.querySelector('.inc-stat-label') ? item.querySelector('.inc-stat-label').innerText : '';
+                  const val = item.querySelector('.inc-stat-value') ? item.querySelector('.inc-stat-value').innerText : '';
+                  const rect = item.getBoundingClientRect();
+                  return { label, val, width: Math.round(rect.width), height: Math.round(rect.height) };
+                });
+
+                const incidentCards = Array.from(document.querySelectorAll('.incident-card')).map(c => {
+                  return {
+                    title: c.querySelector('.incident-window-title') ? c.querySelector('.incident-window-title').innerText.trim() : '',
+                    badges: Array.from(c.querySelectorAll('.badge')).map(b => b.innerText),
+                    errorVal: c.querySelector('.inc-stat-value') ? c.querySelector('.inc-stat-value').innerText : ''
+                  };
+                });
+
+                const cleanStateBox = document.querySelector('.clean-state-box');
+
+                const metricsPayload = {
+                  clientW,
+                  scrollW: maxScrollW,
+                  overflowPx,
+                  bannerTitle: document.getElementById('statusTitle') ? document.getElementById('statusTitle').innerText : '',
+                  bannerBadge: document.getElementById('statusBadge') ? document.getElementById('statusBadge').innerText : '',
+                  totalEntries: document.getElementById('valTotalEntries') ? document.getElementById('valTotalEntries').innerText : '0',
+                  totalHours: document.getElementById('valTotalHours') ? document.getElementById('valTotalHours').innerText : '0',
+                  totalErrors: document.getElementById('valTotalErrors') ? document.getElementById('valTotalErrors').innerText : '0',
+                  spikeCount: document.getElementById('valSpikeCount') ? document.getElementById('valSpikeCount').innerText : '0',
+                  spikeBarsCount: document.querySelectorAll('.bar-spike').length,
+                  cleanStateText: cleanStateBox ? cleanStateBox.innerText.replace(/\n/g, ' - ') : null,
+                  summaryCards,
+                  incidentStats,
+                  incidentCards
+                };
+
+                let dumpEl = document.getElementById('qa_metrics_dump');
+                if (!dumpEl) {
+                  dumpEl = document.createElement('pre');
+                  dumpEl.id = 'qa_metrics_dump';
+                  dumpEl.style.display = 'none';
+                  document.body.appendChild(dumpEl);
+                }
+                dumpEl.textContent = JSON.stringify(metricsPayload);
+              }, 200);
+            }
+          }
+        } catch (e) {
+          console.error('Autoload error:', e);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
