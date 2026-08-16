@@ -21,6 +21,7 @@ class HourBucket(TypedDict):
     error_count: int
     warning_count: int
     messages: list[str]
+    error_messages: list[str]
 
 
 def bucket_by_hour(entries: list[LogEntry]) -> dict[str, HourBucket]:
@@ -48,6 +49,7 @@ def bucket_by_hour(entries: list[LogEntry]) -> dict[str, HourBucket]:
                 "error_count": 0,
                 "warning_count": 0,
                 "messages": [],
+                "error_messages": [],
             }
 
         bucket = buckets[key]
@@ -55,6 +57,7 @@ def bucket_by_hour(entries: list[LogEntry]) -> dict[str, HourBucket]:
 
         if entry["level"] == "ERROR":
             bucket["error_count"] += 1
+            bucket["error_messages"].append(entry["message"])
         elif entry["level"] == "WARNING":
             bucket["warning_count"] += 1
 

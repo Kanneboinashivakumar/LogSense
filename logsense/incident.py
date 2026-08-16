@@ -30,10 +30,7 @@ def build_incident_card(
         A dict with ``category``, ``severity``, ``deviation_pct``,
         ``window``, ``error_count``, ``baseline``, and ``confidence``.
     """
-    error_messages = [
-        msg for msg in buckets[hour]["messages"]
-        # Only classify ERROR-level messages for the pattern
-    ]
+    error_messages = buckets[hour].get("error_messages", [])
     category = classify_pattern(error_messages)
     severity = classify_severity(spike.deviation_pct)
 

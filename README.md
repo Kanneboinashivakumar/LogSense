@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/Tests-77%2F77%20Passing-16a34a" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-78%2F78%20Passing-16a34a" alt="Tests" />
   <img src="https://img.shields.io/badge/Architecture-Modular%20Pipeline-17191c" alt="Architecture" />
   <img src="https://img.shields.io/badge/License-MIT-gray" alt="License" />
 </p>
@@ -31,7 +31,7 @@ LogSense is an automated **Error Trend Detector** that converts unstructured tim
   - [2. Interactive CLI Terminal Tool](#2-interactive-cli-terminal-tool)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
-- [Automated Test Suite (77 Tests)](#-automated-test-suite-77-tests)
+- [Automated Test Suite (78 Tests)](#-automated-test-suite-78-tests)
 - [Benchmark Sample Datasets](#-benchmark-sample-datasets)
 - [Deployment](#-deployment)
 
@@ -67,11 +67,11 @@ flowchart TD
         F --> G["Error Volume Aggregator<br/>(Counts ERROR entries per hour)"]
         
         G --> H["Peak Hour Finder<br/>(Identifies hour with highest count)"]
-        G --> I["Statistical Spike Detector<br/>(Calculates ±2h local moving baseline)"]
+        G --> I["Statistical Spike Detector<br/>(Calculates ±3h local moving baseline)"]
         
         I --> J{"Neighborhood Data"}
-        J -->|"≥ 3 neighbor hours"| K["Standardized Z-Score Model<br/>(Z ≥ 2.0σ & errors ≥ 3)"]
-        J -->|"1 to 2 neighbor hours"| L["Relative Deviation Model<br/>(Δ% ≥ 100% & errors ≥ 3)"]
+        J -->|"≥ 3 neighbor hours"| K["Standardized Z-Score Model<br/>(Z > 2.0σ)"]
+        J -->|"1 to 2 neighbor hours"| L["Relative Deviation Model<br/>(Δ% > 100%)"]
         J -->|"0 neighbor hours"| M["Informational Baseline<br/>(Single-hour dataset)"]
         
         K --> N["Spike Evidence Builder<br/>(Severity, Z-score, Deviation %, Summary Cards)"]
@@ -102,15 +102,15 @@ flowchart TD
 Static thresholds (such as `errors > 10`) fail because baseline traffic varies across services and time of day. LogSense implements an adaptive neighborhood analysis.
 
 ### 1. Symmetric Moving Baseline Window
-For any target hour $H_i$, LogSense defines its local baseline using the available neighboring hours within a $\pm 2$-hour radius:
+For any target hour $H_i$, LogSense defines its local baseline using the available neighboring hours within a $\pm 3$-hour radius (up to 6 neighboring hours):
 
-$$\text{Neighborhood}(H_i) = \{H_{i-2}, H_{i-1}, H_{i+1}, H_{i+2}\}$$
+$$\text{Neighborhood}(H_i) = \{H_{i-3}, H_{i-2}, H_{i-1}, H_{i+1}, H_{i+2}, H_{i+3}\}$$
 
-Let $n$ be the number of valid neighbor observations. The baseline mean ($\mu$) and sample standard deviation ($\sigma$) are calculated as:
+Let $n$ be the number of valid neighbor observations. The baseline mean ($\mu$) and population standard deviation ($\sigma$) are calculated as:
 
 $$\mu = \frac{1}{n} \sum_{j \in \text{Neighborhood}} \text{errors}(H_j)$$
 
-$$\sigma = \sqrt{\frac{1}{n - 1} \sum_{j \in \text{Neighborhood}} (\text{errors}(H_j) - \mu)^2}$$
+$$\sigma = \sqrt{\frac{1}{n} \sum_{j \in \text{Neighborhood}} (\text{errors}(H_j) - \mu)^2}$$
 
 ### 2. Multi-Tiered Statistical Decision Model
 
@@ -122,11 +122,11 @@ flowchart TD
     Check -->|"1 ≤ n < 3"| Dev["Compute Relative Deviation<br/>Δ% = ((errors - μ) / μ) * 100"]
     Check -->|"n = 0"| Single["Single Hour Context<br/>No historical neighbors"]
     
-    ZScore --> FlagZ{"Z ≥ 2.0σ AND errors ≥ 3"}
+    ZScore --> FlagZ{"Z > 2.0σ"}
     FlagZ -->|Yes| SpikeHigh["🔴 HIGH CONFIDENCE SPIKE"]
     FlagZ -->|No| Normal1["Normal Baseline Hour"]
     
-    Dev --> FlagDev{"Δ% ≥ 100% AND errors ≥ 3"}
+    Dev --> FlagDev{"Δ% > 100%"}
     FlagDev -->|Yes| SpikeMed["🟡 MEDIUM CONFIDENCE SPIKE"]
     FlagDev -->|No| Normal2["Normal Baseline Hour"]
     
@@ -139,9 +139,9 @@ flowchart TD
 ```
 
 ### 3. Edge-Case Math Handling
-- **Zero-Baseline Neighborhood ($\mu = 0$)**: When surrounding hours have zero errors, any surge ($\text{errors} \ge 3$) is automatically flagged with $+100.0\%$ deviation to avoid division-by-zero errors.
-- **Zero Variance ($\sigma = 0$)**: When neighbor error counts are identical (e.g. `[1, 1, 1]`), standard deviation defaults to safe boundary evaluation.
-- **Non-Spike Normalization**: If error counts remain within normal variance ($Z < 2.0$ or $\Delta\% < 100\%$), the hour is tagged as `Normal`.
+- **Zero-Baseline Neighborhood ($\mu = 0$)**: When surrounding hours have zero errors, any non-zero error count ($\text{errors} > 0$) is flagged as a sudden surge with $\Delta\% = \infty$ to avoid division-by-zero errors.
+- **Zero Variance ($\sigma = 0$)**: When neighbor error counts are identical (e.g. `[1, 1, 1]`), standard deviation defaults to safe boundary evaluation ($Z = \infty$ if $\text{errors} > \mu$, else $0.0$).
+- **Non-Spike Normalization**: If error counts remain within normal variance ($Z \le 2.0$ or $\Delta\% \le 100\%$), the hour is tagged as `Normal`.
 
 ---
 
@@ -151,7 +151,7 @@ flowchart TD
 - 📈 **Peak Error Hour**: Identifies and highlights the hour with maximum error concentration.
 - 🔴 **Sudden Spike Alerts**: Clear visual and textual alerts for anomalous hourly jumps.
 - 🔍 **Transparent Statistical Explanations**: "Why was this flagged?" drawer detailing exact mathematical inputs ($\mu$, $\sigma$, $Z$, sample size).
-- 🏷️ **Domain Classification**: Automatic categorization of underlying error patterns (Database, Auth, API, Network).
+- 🏷️ **Domain Classification**: Automatic categorization of underlying error patterns (Database, Auth, API, Network) derived exclusively from `ERROR`-level entries.
 - 📁 **Multi-Channel Ingestion**: Drag-and-drop file upload, direct text stream editor, preset test data loader, or live stream simulation.
 - 🎨 **Steep Editorial UX**: Achromatic canvas, `Source Serif 4` typography, pill buttons, floating artifact cards, and dark/light mode.
 
@@ -177,22 +177,38 @@ python -m logsense.demo
 
 CLI Report Output:
 ```text
-================================================================================
-LOGSENSE HOURLY ERROR SUMMARY
-================================================================================
-HOUR (UTC)          TOTAL LOGS     ERROR COUNT     WARNINGS     STATUS
---------------------------------------------------------------------------------
-2026-08-16 11:00        5               0              1        Normal
-2026-08-16 12:00        7               1              2        Normal
-2026-08-16 13:00        6               0              0        Normal
-2026-08-16 14:00        8               1              1        Normal
-2026-08-16 15:00       52              47              2        🔴 SUDDEN SPIKE
-2026-08-16 16:00        9               1              0        Normal
-================================================================================
+============================================================
+  LOGSENSE -- Log Incident Analysis Report
+============================================================
 
-PEAK ERROR HOUR : 2026-08-16 15:00 (47 errors)
-SPIKE ALERT     : 🔴 SUDDEN SPIKE DETECTED at 2026-08-16 15:00
-EVIDENCE        : 47 errors vs local baseline of 0.5 errors (+9300.0% deviation, Z = 3.00σ)
+HOUR-WISE ERROR BREAKDOWN
+------------------------------------------------------------
+Hour                    Total  Errors  Warnings
+------------------------------------------------------------
+2026-08-16 11:00            4       1         1
+2026-08-16 12:00            4       2         1
+2026-08-16 13:00            5       2         1
+2026-08-16 14:00            5       3         0
+2026-08-16 15:00           35      35         0
+2026-08-16 16:00            5       2         1
+2026-08-16 17:00            4       2         0
+2026-08-16 18:00            1       0         0
+
+PEAK ERROR HOUR
+------------------------------------------------------------
+  2026-08-16 15:00  (35 errors)
+
+SPIKE ALERTS
+------------------------------------------------------------
+  [!] SPIKE: 2026-08-16 15:00
+    Severity   : Critical
+    Confidence : HIGH
+    Errors     : 35
+    Baseline   : 1.8
+    Deviation  : 1809.1%
+    Z-score    : 36.95
+
+============================================================
 ```
 
 ---
@@ -228,7 +244,7 @@ LogSense/
 │   ├── sample_malformed.log      # Corrupted/unparseable log lines
 │   └── sample_empty.log          # Zero-byte empty file edge case
 │
-├── tests/                        # Automated PyTest test suite (77 tests)
+├── tests/                        # Automated PyTest test suite (78 tests)
 │   ├── conftest.py               # Test fixtures and dataset loaders
 │   ├── test_parser.py            # Unit tests: parsing & sanitization
 │   ├── test_bucketing.py         # Unit tests: hourly grouping logic
@@ -283,9 +299,9 @@ Open **[http://127.0.0.1:8000](http://127.0.0.1:8000)** in your browser.
 
 ---
 
-## 🧪 Automated Test Suite (77 Tests)
+## 🧪 Automated Test Suite (78 Tests)
 
-LogSense includes an exhaustive PyTest suite with **77 tests (100% passing)** covering all layers of the system.
+LogSense includes an exhaustive PyTest suite with **78 tests (100% passing)** covering all layers of the system.
 
 ```bash
 pytest tests/ -v
@@ -298,14 +314,14 @@ pytest tests/ -v
 | [`test_parser.py`](file:///c:/coding/LogSense/tests/test_parser.py) | 10 | Valid log levels (`INFO`, `WARNING`, `ERROR`), whitespace tolerance, corrupted line recovery. |
 | [`test_bucketing.py`](file:///c:/coding/LogSense/tests/test_bucketing.py) | 4 | Hourly grouping, chronological key sorting, message collection integrity. |
 | [`test_analysis.py`](file:///c:/coding/LogSense/tests/test_analysis.py) | 13 | Peak hour identification, high/medium/low confidence Z-score math, non-spike baseline verification. |
-| [`test_incident.py`](file:///c:/coding/LogSense/tests/test_incident.py) | 5 | Incident card construction, severity assignments, evidence panel explanations. |
+| [`test_incident.py`](file:///c:/coding/LogSense/tests/test_incident.py) | 6 | Incident card construction, ERROR-only message filtering, severity assignments, evidence panel explanations. |
 | [`test_patterns.py`](file:///c:/coding/LogSense/tests/test_patterns.py) | 8 | Domain keyword matching (Database, Auth, API, Network), case-insensitivity, fallbacks. |
 | [`test_report.py`](file:///c:/coding/LogSense/tests/test_report.py) | 6 | CLI summary formatting, peak hour string outputs, empty data handling. |
 | [`test_api.py`](file:///c:/coding/LogSense/tests/test_api.py) | 8 | FastAPI `/analyze` and `/analyze/upload` routes, input validation, 400/413 error responses. |
 | [`test_edge_cases.py`](file:///c:/coding/LogSense/tests/test_edge_cases.py) | 18 | Empty files, single-line logs, all-ERROR logs, all-INFO logs, out-of-order timestamps, multi-day midnight rollover, 10KB giant log lines, huge error volume math. |
 | [`test_integration.py`](file:///c:/coding/LogSense/tests/test_integration.py) | 5 | Full end-to-end pipeline execution from raw text to final report on clean, multi-spike, normal, tiny, and malformed files. |
 
-**Total:** `77 passed in 0.50s`
+**Total:** `78 passed in 0.55s`
 
 ---
 

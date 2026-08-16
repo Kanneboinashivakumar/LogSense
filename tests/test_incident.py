@@ -38,6 +38,29 @@ class TestBuildIncidentCard:
         assert card["confidence"] in ("MEDIUM", "LOW")
         assert card["error_count"] == 3
 
+    def test_incident_category_uses_only_error_messages(self) -> None:
+        """Category must reflect only ERROR messages, ignoring INFO/WARNING noise."""
+        raw_lines = [
+            # 5 INFO messages with "auth" keywords
+            "2026-08-16 15:01:00 INFO User login successful auth token validated\n",
+            "2026-08-16 15:02:00 INFO User login successful auth session active\n",
+            "2026-08-16 15:03:00 INFO Authentication token refreshed for user\n",
+            "2026-08-16 15:04:00 INFO Auth credentials verified\n",
+            "2026-08-16 15:05:00 INFO User authentication token granted\n",
+            # 2 ERROR messages with "database" keywords
+            "2026-08-16 15:10:00 ERROR PostgreSQL connection pool exhausted\n",
+            "2026-08-16 15:11:00 ERROR DB query timeout on database cluster\n",
+        ]
+        result = parse_logs("".join(raw_lines))
+        buckets = bucket_by_hour(result.entries)
+        spikes = detect_spikes(buckets)
+        spike = spikes[0]
+
+        card = build_incident_card(spike.hour, buckets, spike)
+
+        # Majority of all messages (5/7) are Auth, but all ERROR messages (2/2) are Database
+        assert card["category"] == "Database"
+
 
 class TestBuildEvidencePanel:
     """Evidence panel with confidence-aware reason wording."""
