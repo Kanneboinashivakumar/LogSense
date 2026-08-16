@@ -55,44 +55,38 @@ In distributed environments, counting the total number of errors is rarely actio
 
 ```mermaid
 flowchart TD
-    subgraph Inputs["1. Log Ingestion"]
-        A[".log / .txt File Upload"] --> D["Ingestion Layer"]
-        B["Direct Text Stream"] --> D
-        C["Preset Sample Datasets"] --> D
-    end
+    %% Inputs
+    In1[/"📄 Log Files (.log, .txt)"/] --> Ingest["1. Ingestion Layer"]
+    In2[/"⌨️ Direct Log Stream Paste"/] --> Ingest
+    In3[/"🧪 Benchmark Datasets"/] --> Ingest
 
-    subgraph CoreEngine["2. Analytical Core (logsense/)"]
-        D --> E["Regex Tokenizer & Parser<br/>(Extracts Timestamps & INFO / WARNING / ERROR)"]
-        E --> F["Hourly Bucketing Engine<br/>(Groups entries into YYYY-MM-DD HH:00 slots)"]
-        F --> G["Error Volume Aggregator<br/>(Counts ERROR entries per hour)"]
-        
-        G --> H["Peak Hour Finder<br/>(Identifies hour with highest count)"]
-        G --> I["Statistical Spike Detector<br/>(Calculates ±3h local moving baseline)"]
-        
-        I --> J{"Neighborhood Data"}
-        J -->|"≥ 3 neighbor hours"| K["Standardized Z-Score Model<br/>(Z > 2.0σ)"]
-        J -->|"1 to 2 neighbor hours"| L["Relative Deviation Model<br/>(Δ% > 100%)"]
-        J -->|"0 neighbor hours"| M["Informational Baseline<br/>(Single-hour dataset)"]
-        
-        K --> N["Spike Evidence Builder<br/>(Severity, Z-score, Deviation %, Summary Cards)"]
-        L --> N
-        M --> N
-    end
+    %% Core Pipeline
+    Ingest --> Parse["2. Regex Tokenizer & Sanitizer<br/><code>Extracts Timestamps & INFO/WARN/ERROR Levels</code>"]
+    Parse --> Bucket["3. Hourly Bucketing Controller<br/><code>Groups entries into YYYY-MM-DD HH:00 slots</code>"]
+    Bucket --> Agg["4. Hourly Error Aggregator<br/><code>Counts ERROR entries per hour</code>"]
 
-    subgraph Outputs["3. Delivery & Presentation"]
-        H --> O["FastAPI REST Server<br/>(server.py)"]
-        N --> O
-        H --> P["CLI Terminal Report<br/>(demo.py & report.py)"]
-        N --> P
-        O --> Q["Interactive Web Dashboard<br/>(Steep Editorial UI with SVG Charts & Metrics)"]
-    end
+    %% Analytics
+    Agg --> Peak["5. Peak Error Finder<br/><code>Isolates hour with maximum errors</code>"]
+    Agg --> Spike["6. Statistical Baseline Engine<br/><code>Computes ±3h local moving window</code>"]
 
-    style Inputs fill:#f4f4f5,stroke:#d4d4d8,stroke-width:1px
-    style CoreEngine fill:#fafafb,stroke:#a1a1aa,stroke-width:1px
-    style Outputs fill:#f4f4f5,stroke:#d4d4d8,stroke-width:1px
-    style K fill:#fee2e2,stroke:#ef4444,stroke-width:1px
-    style L fill:#fef3c7,stroke:#f59e0b,stroke-width:1px
-    style Q fill:#f0fdf4,stroke:#22c55e,stroke-width:2px
+    %% Decision Branch
+    Spike --> Eval{"Context Sample Size (n)"}
+    Eval -->|"n ≥ 3 hours"| ZScore["Z-Score Model<br/><code>Z > 2.0σ</code>"]
+    Eval -->|"1 ≤ n < 3 hours"| Dev["Deviation Model<br/><code>Δ% > 100%</code>"]
+    Eval -->|"n = 0 hours"| Single["Single-Hour Mode<br/><code>Informational Tag</code>"]
+
+    %% Evidence Builder
+    ZScore --> Alert["7. Evidence & Incident Builder<br/><code>Statistical Justification & Severity</code>"]
+    Dev --> Alert
+    Single --> Alert
+
+    %% Outputs
+    Peak --> API["FastAPI REST Server<br/><code>server.py</code>"]
+    Alert --> API
+    Peak --> CLI["CLI Report Generator<br/><code>python -m logsense.demo</code>"]
+    Alert --> CLI
+
+    API --> UI(["🖥️ Interactive Web Dashboard<br/><code>Steep UI & SVG Trend Visualization</code>"])
 ```
 
 ---
@@ -116,26 +110,21 @@ $$\sigma = \sqrt{\frac{1}{n} \sum_{j \in \text{Neighborhood}} (\text{errors}(H_j
 
 ```mermaid
 flowchart TD
-    Start["Target Hour (H_i)"] --> Check{"Count Baseline Neighbors (n)"}
-    
-    Check -->|"n ≥ 3"| ZScore["Compute Standardized Z-Score<br/>Z = (errors - μ) / σ"]
-    Check -->|"1 ≤ n < 3"| Dev["Compute Relative Deviation<br/>Δ% = ((errors - μ) / μ) * 100"]
-    Check -->|"n = 0"| Single["Single Hour Context<br/>No historical neighbors"]
-    
-    ZScore --> FlagZ{"Z > 2.0σ"}
-    FlagZ -->|Yes| SpikeHigh["🔴 HIGH CONFIDENCE SPIKE"]
-    FlagZ -->|No| Normal1["Normal Baseline Hour"]
-    
-    Dev --> FlagDev{"Δ% > 100%"}
-    FlagDev -->|Yes| SpikeMed["🟡 MEDIUM CONFIDENCE SPIKE"]
-    FlagDev -->|No| Normal2["Normal Baseline Hour"]
-    
-    Single --> Info["ℹ️ Informational Baseline"]
+    Target["Target Hour (H_i)"] --> Check{"Neighbor Count (n)"}
 
-    style SpikeHigh fill:#fee2e2,stroke:#ef4444,stroke-width:1.5px
-    style SpikeMed fill:#fef3c7,stroke:#f59e0b,stroke-width:1.5px
-    style Normal1 fill:#f4f4f5,stroke:#d4d4d8,stroke-width:1px
-    style Normal2 fill:#f4f4f5,stroke:#d4d4d8,stroke-width:1px
+    Check -->|"n ≥ 3"| CalcZ["Standardized Z-Score<br/><code>Z = (errors - μ) / σ</code>"]
+    Check -->|"1 ≤ n < 3"| CalcDev["Relative Deviation<br/><code>Δ% = ((errors - μ) / μ) * 100</code>"]
+    Check -->|"n = 0"| NoHist["Single-Hour Log<br/><code>No historical context</code>"]
+
+    CalcZ --> TestZ{"Z > 2.0σ ?"}
+    TestZ -->|Yes| HighSpike["🔴 HIGH CONFIDENCE SPIKE"]
+    TestZ -->|No| NormalZ["Normal Baseline Hour"]
+
+    CalcDev --> TestDev{"Δ% > 100% ?"}
+    TestDev -->|Yes| MedSpike["🟡 MEDIUM CONFIDENCE SPIKE"]
+    TestDev -->|No| NormalDev["Normal Baseline Hour"]
+
+    NoHist --> InfoTag["ℹ️ Informational Baseline"]
 ```
 
 ### 3. Edge-Case Math Handling
