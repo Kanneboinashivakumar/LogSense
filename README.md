@@ -9,11 +9,16 @@
 </p>
 
 <p align="center">
+  <a href="https://logsense-exa7.onrender.com"><img src="https://img.shields.io/badge/Live%20Demo-logsense--exa7.onrender.com-46E3B7?logo=render&logoColor=white" alt="Live Demo" /></a>
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Tests-78%2F78%20Passing-16a34a" alt="Tests" />
   <img src="https://img.shields.io/badge/Architecture-Modular%20Pipeline-17191c" alt="Architecture" />
   <img src="https://img.shields.io/badge/License-MIT-gray" alt="License" />
+</p>
+
+<p align="center">
+  🔗 <strong>Live Demo:</strong> <a href="https://logsense-exa7.onrender.com">https://logsense-exa7.onrender.com</a>
 </p>
 
 LogSense is an automated **Error Trend Detector** that converts unstructured timestamped server logs into granular hourly analytics, identifies peak error periods, and statistically flags sudden error surges by comparing activity against dynamic rolling baselines with explicitly defined thresholds.
@@ -329,11 +334,13 @@ All datasets in `test_data/` are synthetic and deterministic:
 
 ## ☁️ Deployment
 
-LogSense is ready for one-click cloud deployment:
+- 🌐 **Live Web Service**: **[https://logsense-exa7.onrender.com](https://logsense-exa7.onrender.com)**
+
+LogSense is configured for continuous zero-downtime cloud hosting:
 
 ### 1. Render Deployment
 1. Connect this repository to **Render**.
-2. Render will automatically detect [`render.yaml`](file:///c:/coding/LogSense/render.yaml) and deploy the web service on the free tier.
+2. Render automatically detects [`render.yaml`](file:///c:/coding/LogSense/render.yaml) and deploys the web service on the free tier.
 
 ### 2. Docker / Container Platforms (Railway, Fly.io, Google Cloud Run)
 Build and run the container locally or in the cloud:
